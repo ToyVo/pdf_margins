@@ -1,4 +1,4 @@
-import {degrees, PDFDocument} from 'pdf-lib';
+import { PageSizes, PDFDocument } from 'pdf-lib';
 
 export const centerPdf = async (pdfBytes: string | Uint8Array | ArrayBuffer, options: {
   drawAlignment?: boolean,
@@ -7,49 +7,52 @@ export const centerPdf = async (pdfBytes: string | Uint8Array | ArrayBuffer, opt
   nudgeWidth?: number,
   nudgeBorderWidth?: number,
   nudgeBorderHeight?: number,
+  paperSize?: [number, number],
 }): Promise<Uint8Array> => {
+  const drawAlignment = options?.drawAlignment !== false;
+  const drawBorder = options?.drawBorder !== false;
+  const nudgeHeight = options?.nudgeHeight || 0;
+  const nudgeWidth = options?.nudgeWidth || 0;
+  const nudgeBorderWidth = options?.nudgeBorderWidth || 0;
+  const nudgeBorderHeight = options?.nudgeBorderWidth || 0;
+  const paperSize = options?.paperSize?.length === 2 ? options.paperSize : PageSizes.Letter;
   const oldPdfDoc = await PDFDocument.load(pdfBytes);
   const newPdfDoc = await PDFDocument.create();
 
   for (const oldPage of oldPdfDoc.getPages()) {
-    const newPage = newPdfDoc.addPage();
+    const bothLandscapeOrPortrait = oldPage.getWidth() > oldPage.getHeight() && paperSize[0] > paperSize[1];
+    const newPage = newPdfDoc.addPage(bothLandscapeOrPortrait ? paperSize : [paperSize[1], paperSize[0]]);
 
-    const isLandscape = oldPage.getWidth() > oldPage.getHeight();
-
-    const newWidth = newPage.getWidth();
-    const newHeight = newPage.getHeight();
-    const oldWidth = isLandscape ? oldPage.getHeight() : oldPage.getWidth();
-    const oldHeight = isLandscape ? oldPage.getWidth() : oldPage.getHeight();
-    const widthOffset = (newWidth - oldWidth) / 2;
-    const heightOffset = (newHeight - oldHeight) / 2;
+    const widthOffset = (newPage.getWidth() - oldPage.getWidth()) / 2;
+    const heightOffset = (newPage.getHeight() - oldPage.getHeight()) / 2;
 
     const embedded = await newPdfDoc.embedPage(oldPage);
     newPage.drawPage(embedded, {
-      x: (isLandscape ? newWidth - widthOffset : widthOffset) + (options?.nudgeWidth || 0),
-      y: heightOffset + (options?.nudgeHeight || 0),
-      rotate: isLandscape ? degrees(90) : degrees(0),
+      x: widthOffset + nudgeWidth,
+      y: heightOffset + nudgeHeight,
     });
 
-    if (options?.drawAlignment) {
+    if (drawAlignment) {
+      const isLandscape = newPage.getWidth() > newPage.getHeight();
       newPage.drawLine({
-        start: {x: 10, y: 10},
-        end: {x: 30, y: 10},
+        start: { x: 10, y: isLandscape ? newPage.getHeight() - 10 : 10 },
+        end: { x: 30, y: isLandscape ? newPage.getHeight() - 10 : 10 },
         thickness: 2,
       });
 
       newPage.drawLine({
-        start: {x: 10, y: 30},
-        end: {x: 10, y: 10},
+        start: { x: 10, y: isLandscape ? newPage.getHeight() - 30 : 30 },
+        end: { x: 10, y: isLandscape ? newPage.getHeight() - 10 : 10 },
         thickness: 2,
       });
     }
 
-    if (options?.drawBorder) {
+    if (drawBorder) {
       newPage.drawRectangle({
-        x: widthOffset + (options?.nudgeBorderWidth || 0) + (options?.nudgeWidth || 0),
-        y: heightOffset + (options?.nudgeBorderHeight || 0) + (options?.nudgeHeight || 0),
-        height: oldHeight - ((options?.nudgeBorderHeight || 0) * 2),
-        width: oldWidth - ((options?.nudgeBorderWidth || 0) * 2),
+        x: widthOffset + nudgeBorderWidth + nudgeWidth,
+        y: heightOffset + nudgeBorderHeight + nudgeHeight,
+        height: oldPage.getHeight() - (nudgeBorderHeight * 2),
+        width: oldPage.getWidth() - (nudgeBorderWidth * 2),
         opacity: 0,
         borderOpacity: 1,
         borderWidth: 2,
@@ -58,4 +61,4 @@ export const centerPdf = async (pdfBytes: string | Uint8Array | ArrayBuffer, opt
   }
 
   return await newPdfDoc.save();
-}
+};
