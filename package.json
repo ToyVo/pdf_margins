@@ -2,7 +2,7 @@
   "name": "pdf-margins",
   "version": "0.1.0",
   "private": true,
-  "license": "MIT",
+  "license": "Apache-2.0",
   "homepage": "https://pdf.diekvoss.com",
   "dependencies": {
     "@emotion/react": "^11.9.3",
