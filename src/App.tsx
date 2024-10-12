@@ -1,5 +1,3 @@
-import React, { ChangeEvent, useEffect, useState } from 'react';
-import { centerPdf } from './CenterPDF';
 import {
   Box,
   Button,
@@ -12,8 +10,10 @@ import {
   Typography,
 } from '@mui/material';
 import { PageSizes } from 'pdf-lib';
+import { ChangeEvent, useEffect, useState } from 'react';
+import { centerPdf } from './CenterPDF';
 
-export const App = () => {
+const App = () => {
   const [originalBytes, setOriginalBytes] = useState<ArrayBuffer>();
   const [originalUrl, setOriginalUrl] = useState('');
   const [centeredUrl, setCenteredUrl] = useState('');
@@ -95,3 +95,5 @@ export const App = () => {
     </Stack>
   );
 };
+
+export default App
