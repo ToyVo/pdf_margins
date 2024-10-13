@@ -39,18 +39,28 @@
         let
           packageJson = builtins.fromJSON (builtins.readFile ./package.json);
           rev = self.shortRev or self.dirtyShortRev or "dirty";
+          hash = "sha256-jcMplG+VLHtVr/n2oZ59B+6WNRp/oIQs9HeBxYIkQT4=";
         in
         {
           packages.default = pkgs.buildNpmPackage {
             pname = packageJson.name;
             version = "${packageJson.version}-${rev}";
             src = ./.;
-            npmDepsHash = "sha256-jcMplG+VLHtVr/n2oZ59B+6WNRp/oIQs9HeBxYIkQT4=";
+            npmDepsHash = hash;
           };
           devshells.default = {
             commands = [
               {
                 package = pkgs.nodejs;
+              }
+              {
+                name = "update_hash";
+                help = "Update Hash inside flake.nix to match package-lock.json";
+                command = ''
+                  hash="$(${lib.getExe pkgs.prefetch-npm-deps} ${./package-lock.json})"
+                  echo $hash
+                  ${lib.getExe pkgs.gnused} -E -i.prev "s|sha256-[A-Za-z0-9+=/]+|$hash|" flake.nix
+                '';
               }
             ];
           };
